@@ -1,0 +1,37 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Lottery {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  totalNumbers Int
+  gameNumbers  Int
+  
+  results    Result[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Result {
+  id        String   @id @default(uuid())
+  lotteryId String
+  lottery   Lottery  @relation(fields: [lotteryId], references: [id])
+  
+  contestNumber Int
+  date          DateTime
+  numbers       Int[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([lotteryId, contestNumber])
+}
