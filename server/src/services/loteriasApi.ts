@@ -6,14 +6,18 @@ const BASE_URL = 'https://loteriascaixa-api.herokuapp.com/api';
 // For Prisma 7, we might need to pass the adapter or url here if not using global config
 // But usually `new PrismaClient()` picks up the config or env if setup standardly.
 // Since we have `prisma.config.ts`, it should work.
-const prisma = new PrismaClient();
+export const prisma = new PrismaClient();
 
 interface ApiResult {
   nome: string;
-  numero_concurso: number;
-  data_concurso: string;
+  numero_concurso?: number;
+  concurso?: number;
+  data_concurso?: string;
+  data?: string;
   dezenas: string[];
-  // add other fields as needed
+  acumulou?: boolean;
+  dataProximoConcurso?: string;
+  valorEstimadoProximoConcurso?: number;
 }
 
 export const fetchLatestResult = async (loteriaSlug: string) => {
@@ -29,6 +33,10 @@ export const fetchLatestResult = async (loteriaSlug: string) => {
 export const fetchResultByConcurso = async (loteriaSlug: string, concurso: number) => {
   try {
     const response = await axios.get<ApiResult>(`${BASE_URL}/${loteriaSlug}/${concurso}`);
+    console.log(
+      `[DEBUG] Resposta API ${loteriaSlug}/${concurso}:`,
+      JSON.stringify(response.data, null, 2)
+    );
     return response.data;
   } catch (error) {
     // 404 means it doesn't exist yet usually
@@ -57,6 +65,18 @@ export const importHistoricalData = async (
         gameNumbers,
       },
     });
+  } else {
+    // Check if we need to update config
+    if (lottery.gameNumbers !== gameNumbers || lottery.totalNumbers !== totalNumbers) {
+      console.log(`Atualizando configuração da loteria ${loteriaName}...`);
+      lottery = await prisma.lottery.update({
+        where: { id: lottery.id },
+        data: {
+          totalNumbers,
+          gameNumbers,
+        },
+      });
+    }
   }
 
   // 2. Get latest imported contest to resume from
@@ -74,11 +94,17 @@ export const importHistoricalData = async (
   while (hasMore && errorCount < 5) {
     const data = await fetchResultByConcurso(loteriaSlug, nextConcurso);
 
-    if (!data) {
+    // Normalizar campos que mudam na API
+    const numeroConcurso = data?.numero_concurso ?? data?.concurso;
+    const dataConcurso = data?.data_concurso ?? data?.data;
+
+    if (!data || !numeroConcurso) {
       // Try to fetch latest to see if we reached the end or just a gap/error
       const latest = await fetchLatestResult(loteriaSlug);
-      if (latest && latest.numero_concurso < nextConcurso) {
-        console.log(`Chegamos ao fim dos resultados disponíveis (${latest.numero_concurso}).`);
+      const latestConcurso = latest?.numero_concurso ?? latest?.concurso ?? 0;
+
+      if (latest && latestConcurso < nextConcurso) {
+        console.log(`Chegamos ao fim dos resultados disponíveis (${latestConcurso}).`);
         break;
       }
 
@@ -90,9 +116,15 @@ export const importHistoricalData = async (
 
     errorCount = 0; // Reset error count on success
 
+    if (!dataConcurso) {
+      console.log(`Data inválida para concurso ${numeroConcurso}`);
+      nextConcurso++;
+      continue;
+    }
+
     // Save result
     // Date format from API: "10/04/2007" (DD/MM/YYYY)
-    const dateParts = data.data_concurso.split('/').map(Number);
+    const dateParts = dataConcurso.split('/').map(Number);
     if (dateParts.length < 3) continue;
 
     const [day, month, year] = dateParts;
@@ -100,16 +132,21 @@ export const importHistoricalData = async (
 
     const dateObj = new Date(year, month - 1, day);
 
+    // Check mapping to numbers array or string depending on your DB logic
+
     await prisma.result.create({
       data: {
         lotteryId: lottery.id,
-        contestNumber: data.numero_concurso,
+        contestNumber: numeroConcurso,
         date: dateObj,
-        numbers: data.dezenas.map(Number),
+        numbers: JSON.stringify(data.dezenas.map(Number)),
+        accumulated: data.acumulou,
+        nextDrawDate: data.dataProximoConcurso,
+        nextPrize: data.valorEstimadoProximoConcurso,
       },
     });
 
-    console.log(`Importado: Concurso ${data.numero_concurso} - ${data.data_concurso}`);
+    console.log(`Importado: Concurso ${numeroConcurso} - ${dataConcurso}`);
     nextConcurso++;
 
     // Rate limiting friendly

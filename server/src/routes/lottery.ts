@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { importHistoricalData } from '../services/loteriasApi.js';
+import { importHistoricalData, prisma } from '../services/loteriasApi.js';
 
 export async function lotteryRoutes(server: FastifyInstance) {
   server.post('/import/:slug', async (request, reply) => {
@@ -26,7 +26,7 @@ export async function lotteryRoutes(server: FastifyInstance) {
       case 'lotomania':
         name = 'Lotomania';
         total = 100;
-        game = 20; // Sorteados
+        game = 50; // Dezenas na aposta padrão (apesar de sortear 20)
         break;
       case 'quina':
         name = 'Quina';
@@ -37,12 +37,54 @@ export async function lotteryRoutes(server: FastifyInstance) {
         return reply.status(400).send({ error: 'Loteria desconhecida ou não configurada auto.' });
     }
 
+    // Force Update: Remove o último resultado para garantir atualização de prêmios
+    try {
+      const lottery = await prisma.lottery.findUnique({ where: { slug } });
+      if (lottery) {
+        const lastResult = await prisma.result.findFirst({
+          where: { lotteryId: lottery.id },
+          orderBy: { contestNumber: 'desc' },
+        });
+
+        if (lastResult) {
+          console.log(
+            `[Force Update] Removendo conc. ${lastResult.contestNumber} da ${name} para atualizar...`
+          );
+          await prisma.result.delete({ where: { id: lastResult.id } });
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao tentar forçar atualização:', err);
+    }
+
     // Async processing to not block
     importHistoricalData(slug, name, total, game).catch(err => {
       console.error('Erro background import:', err);
     });
 
     return { message: `Importação iniciada para ${name}` };
+  });
+
+  server.get('/last-result/:slug', async (request, reply) => {
+    const { slug } = request.params as { slug: string };
+
+    try {
+      const lottery = await prisma.lottery.findUnique({
+        where: { slug },
+      });
+
+      if (!lottery) return reply.status(404).send({ error: 'Loteria não encontrada' });
+
+      const lastResult = await prisma.result.findFirst({
+        where: { lotteryId: lottery.id },
+        orderBy: { contestNumber: 'desc' },
+      });
+
+      return lastResult;
+    } catch (error) {
+      console.error(error);
+      return reply.status(500).send({ error: 'Erro ao buscar último resultado' });
+    }
   });
 
   server.get('/health', async () => {

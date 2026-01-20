@@ -16,7 +16,7 @@ export const Header = () => {
 
         <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
           <div className="text-right hidden md:block">
-            <p className="text-sm font-semibold text-gray-700">João Silva</p>
+            <p className="text-sm font-semibold text-gray-700">Carlos Pereira</p>
             <p className="text-xs text-gray-500">Plano Premium</p>
           </div>
           <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200 text-gray-500">

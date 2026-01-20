@@ -18,7 +18,7 @@ export const generateGames = async (config: GeneratorConfig) => {
     include: {
       results: {
         orderBy: { contestNumber: 'desc' },
-        take: 100, // Analyze last 100 games for trend
+        // Removing take: 100 to analyze ALL history as requested
       },
     },
   });
@@ -27,16 +27,20 @@ export const generateGames = async (config: GeneratorConfig) => {
     throw new Error('Loteria não encontrada');
   }
 
-  const historyNumbers = lottery.results.map(r => r.numbers);
+  const historyNumbers = lottery.results.map(r => JSON.parse(r.numbers));
   const historyWithContest = lottery.results.map(r => ({
     contextNumber: r.contestNumber,
-    numbers: r.numbers,
+    numbers: JSON.parse(r.numbers),
   }));
   const latestContest = lottery.results[0]?.contestNumber || 0;
 
   // 2. Calculate Stats
   const frequencyMap = calculateFrequency(historyNumbers, lottery.totalNumbers);
   const delayMap = calculateDelay(historyWithContest, lottery.totalNumbers, latestContest);
+
+  // Normalize scores to 0-1 range to handle different scales (freq vs delay)
+  const maxFreq = Math.max(...frequencyMap.values()) || 1;
+  const maxDelay = Math.max(...delayMap.values()) || 1;
 
   // 3. Score candidates
   const candidates: { number: number; score: number }[] = [];
@@ -45,35 +49,33 @@ export const generateGames = async (config: GeneratorConfig) => {
     const freq = frequencyMap.get(i) || 0;
     const delay = delayMap.get(i) || 0;
 
+    const normFreq = freq / maxFreq;
+    const normDelay = delay / maxDelay;
+
     let score = 0;
 
-    // Simple Scoring Strategy
+    // Improved Scoring Strategy with Normalization
     switch (strategy) {
       case 'frequency':
-        // Higher frequency = Higher score
-        score = freq * 1.5 + delay * 0.1;
+        // Favor High Frequency, Slight penalty for very low delay (repeated immediately)
+        score = normFreq * 0.8 + normDelay * 0.2;
         break;
       case 'delay':
-        // Higher delay = Higher score
-        score = delay * 2.0 + freq * 0.5;
+        // Favor High Delay, but keep some frequency weight to avoid numbers that NEVER come out
+        score = normDelay * 0.8 + normFreq * 0.2;
         break;
       case 'balanced':
       default:
-        // Mix: We want numbers that appear often but aren't TOO delayed?
-        // Or numbers that handle the "law of large numbers" return to mean?
-        // Let's optimize for HOT numbers that recently appeared + COLD numbers due.
-        score = freq + delay;
+        // Balanced mix of Hot and Due numbers
+        // We want numbers that appear often (Hot) AND are due (Delay)
+        score = normFreq * 0.5 + normDelay * 0.5;
         break;
     }
 
     candidates.push({ number: i, score });
   }
 
-  // 4. Select Numbers based on Weighted Randomness (or pure top ranking)
-  // Pure Top Ranking:
-  // candidates.sort((a, b) => b.score - a.score);
-
-  // Weighted Randomness makes it not deterministic (better for gambling feel)
+  // 4. Select Numbers based on Weighted Randomness
   const games: number[][] = [];
 
   for (let g = 0; g < numberOfGames; g++) {
@@ -84,9 +86,8 @@ export const generateGames = async (config: GeneratorConfig) => {
       // Sort by score
       pool.sort((a, b) => b.score - a.score);
 
-      // Take from top N (e.g., top 50% best scores) to avoid only picking the same
-      // Randomly pick index from top 20 candidates (variable)
-      const topN = Math.min(pool.length, lottery.gameNumbers * 2);
+      // Take from top N (e.g., top 25% best scores) for better intelligence but some randomness
+      const topN = Math.max(5, Math.floor(pool.length * 0.25));
       const randomIndex = Math.floor(Math.random() * topN);
 
       const chosen = pool[randomIndex];
@@ -104,7 +105,7 @@ export const generateGames = async (config: GeneratorConfig) => {
 
   return {
     strategy,
-    basedOn: `Últimos ${Math.min(100, lottery.results.length)} concursos`,
+    basedOn: `Total de ${lottery.results.length} concursos analisados`,
     games,
   };
 };

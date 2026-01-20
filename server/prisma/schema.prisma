@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -28,7 +28,10 @@ model Result {
   
   contestNumber Int
   date          DateTime
-  numbers       Int[]
+  numbers       String // JSON string "[1,2,3]"
+  accumulated   Boolean? @default(false)
+  nextDrawDate  String?
+  nextPrize     Float?   @default(0)
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

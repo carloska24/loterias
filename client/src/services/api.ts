@@ -21,3 +21,8 @@ export const importData = async (lotterySlug: string) => {
   const response = await api.post(`/import/${lotterySlug}`);
   return response.data;
 };
+
+export const getLastResult = async (lotterySlug: string) => {
+  const response = await api.get(`/last-result/${lotterySlug}`);
+  return response.data;
+};
