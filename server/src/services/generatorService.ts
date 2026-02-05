@@ -1,5 +1,12 @@
 import { PrismaClient } from '@prisma/client';
-import { calculateFrequency, calculateDelay, shuffle } from '../utils/mathUtils.js';
+import {
+  calculateFrequency,
+  calculateDelay,
+  shuffle,
+  getParity,
+  getSum,
+  getQuadrantDistribution,
+} from '../utils/mathUtils.js';
 
 const prisma = new PrismaClient();
 
@@ -18,7 +25,6 @@ export const generateGames = async (config: GeneratorConfig) => {
     include: {
       results: {
         orderBy: { contestNumber: 'desc' },
-        // Removing take: 100 to analyze ALL history as requested
       },
     },
   });
@@ -38,7 +44,6 @@ export const generateGames = async (config: GeneratorConfig) => {
   const frequencyMap = calculateFrequency(historyNumbers, lottery.totalNumbers);
   const delayMap = calculateDelay(historyWithContest, lottery.totalNumbers, latestContest);
 
-  // Normalize scores to 0-1 range to handle different scales (freq vs delay)
   const maxFreq = Math.max(...frequencyMap.values()) || 1;
   const maxDelay = Math.max(...delayMap.values()) || 1;
 
@@ -54,20 +59,15 @@ export const generateGames = async (config: GeneratorConfig) => {
 
     let score = 0;
 
-    // Improved Scoring Strategy with Normalization
     switch (strategy) {
       case 'frequency':
-        // Favor High Frequency, Slight penalty for very low delay (repeated immediately)
         score = normFreq * 0.8 + normDelay * 0.2;
         break;
       case 'delay':
-        // Favor High Delay, but keep some frequency weight to avoid numbers that NEVER come out
         score = normDelay * 0.8 + normFreq * 0.2;
         break;
       case 'balanced':
       default:
-        // Balanced mix of Hot and Due numbers
-        // We want numbers that appear often (Hot) AND are due (Delay)
         score = normFreq * 0.5 + normDelay * 0.5;
         break;
     }
@@ -75,37 +75,73 @@ export const generateGames = async (config: GeneratorConfig) => {
     candidates.push({ number: i, score });
   }
 
-  // 4. Select Numbers based on Weighted Randomness
+  // 4. Select Numbers based on Weighted Randomness and Advanced Patterns
   const games: number[][] = [];
+  const maxAttemptsPerGame = 50; // To avoid infinite loops if filters are too strict
 
   for (let g = 0; g < numberOfGames; g++) {
-    const gameNumbers: number[] = [];
-    const pool = [...candidates]; // Copy
+    let gameNumbers: number[] = [];
+    let attempts = 0;
+    let isValid = false;
 
-    while (gameNumbers.length < lottery.gameNumbers && pool.length > 0) {
-      // Sort by score
-      pool.sort((a, b) => b.score - a.score);
+    while (!isValid && attempts < maxAttemptsPerGame) {
+      gameNumbers = [];
+      const pool = [...candidates];
+      attempts++;
 
-      // Take from top N (e.g., top 25% best scores) for better intelligence but some randomness
-      const topN = Math.max(5, Math.floor(pool.length * 0.25));
-      const randomIndex = Math.floor(Math.random() * topN);
+      while (gameNumbers.length < lottery.gameNumbers && pool.length > 0) {
+        pool.sort((a, b) => b.score - a.score);
+        const topN = Math.max(5, Math.floor(pool.length * 0.3)); // Slightly wider top pool
+        const randomIndex = Math.floor(Math.random() * topN);
+        const chosen = pool[randomIndex];
 
-      const chosen = pool[randomIndex];
-      if (chosen) {
-        gameNumbers.push(chosen.number);
+        if (chosen) {
+          gameNumbers.push(chosen.number);
+        }
+        pool.splice(randomIndex, 1);
       }
 
-      // Remove chosen from pool
-      pool.splice(randomIndex, 1);
+      gameNumbers.sort((a, b) => a - b);
+
+      // --- APPLY ADVANCED PATTERNS FILTERS ---
+
+      // 1. Parity Filter (Ideal: 3/3, 4/2, 2/4 for Mega-Sena)
+      const { odd, even } = getParity(gameNumbers);
+      const isParityBalanced = odd >= 2 && odd <= 4;
+
+      // 2. Sum Filter (Ideal for Mega-Sena 6 numbers: 150 - 220)
+      // Range is approximate based on common winning sums
+      const sum = getSum(gameNumbers);
+      const isSumInRange = sum >= 130 && sum <= 240;
+
+      // 3. Quadrant Filter (Ideal: scattered across at least 3 quadrants)
+      const quadrants = getQuadrantDistribution(gameNumbers, lottery.totalNumbers);
+      const quadrantsUsed = quadrants.filter(q => q > 0).length;
+      const isDistributed = quadrantsUsed >= 3;
+
+      // 4. Sequence Filter (No more than 2 consecutive numbers)
+      let hasLongSequence = false;
+      for (let i = 0; i < gameNumbers.length - 2; i++) {
+        if (
+          gameNumbers[i + 1] === gameNumbers[i] + 1 &&
+          gameNumbers[i + 2] === gameNumbers[i] + 2
+        ) {
+          hasLongSequence = true;
+          break;
+        }
+      }
+
+      if (isParityBalanced && isSumInRange && isDistributed && !hasLongSequence) {
+        isValid = true;
+      }
     }
 
-    // Sort numbers for display
-    games.push(gameNumbers.sort((a, b) => a - b));
+    games.push(gameNumbers);
   }
 
   return {
     strategy,
-    basedOn: `Total de ${lottery.results.length} concursos analisados`,
+    basedOn: `Total de ${lottery.results.length} concursos analisados + Padrões Estatísticos Avançados`,
     games,
   };
 };

@@ -69,3 +69,40 @@ export const shuffle = <T>(array: T[]): T[] => {
   }
   return arr;
 };
+
+export const getParity = (numbers: number[]): { odd: number; even: number } => {
+  let odd = 0;
+  let even = 0;
+  numbers.forEach(n => {
+    if (n % 2 === 0) even++;
+    else odd++;
+  });
+  return { odd, even };
+};
+
+export const getSum = (numbers: number[]): number => {
+  return numbers.reduce((acc, n) => acc + n, 0);
+};
+
+export const getQuadrantDistribution = (numbers: number[], totalNumbers: number): number[] => {
+  // Assuming a standard grid layout for a lottery like Mega-Sena (60 numbers: 6 rows, 10 columns)
+  // We divide the total numbers into 4 equal quadrants
+  const quadrants = [0, 0, 0, 0];
+  const midPointValue = totalNumbers / 2;
+  const numbersPerRow = 10; // Mega-Sena style
+
+  numbers.forEach(n => {
+    const row = Math.ceil(n / numbersPerRow);
+    const col = ((n - 1) % numbersPerRow) + 1;
+
+    if (row <= 3 && col <= 5)
+      quadrants[0]++; // Top Left
+    else if (row <= 3 && col > 5)
+      quadrants[1]++; // Top Right
+    else if (row > 3 && col <= 5)
+      quadrants[2]++; // Bottom Left
+    else quadrants[3]++; // Bottom Right
+  });
+
+  return quadrants;
+};

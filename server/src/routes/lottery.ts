@@ -57,12 +57,14 @@ export async function lotteryRoutes(server: FastifyInstance) {
       console.error('Erro ao tentar forçar atualização:', err);
     }
 
-    // Async processing to not block
-    importHistoricalData(slug, name, total, game).catch(err => {
-      console.error('Erro background import:', err);
-    });
-
-    return { message: `Importação iniciada para ${name}` };
+    // Await processing to provide feedback
+    try {
+      await importHistoricalData(slug, name, total, game);
+      return { message: `Base de dados de ${name} atualizada com sucesso.` };
+    } catch (err) {
+      console.error('Erro import:', err);
+      return reply.status(500).send({ error: 'Falha ao atualizar base de dados.' });
+    }
   });
 
   server.get('/last-result/:slug', async (request, reply) => {
