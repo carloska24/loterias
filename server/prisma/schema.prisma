@@ -16,6 +16,12 @@ model Lottery {
   totalNumbers Int
   gameNumbers  Int
   
+  // Novos campos para resiliência e painel
+  nextPrize    Float?
+  nextDate     DateTime?
+  accumulated  Boolean  @default(false)
+
+  
   results    Result[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -34,4 +40,29 @@ model Result {
   updatedAt DateTime @updatedAt
 
   @@unique([lotteryId, contestNumber])
+}
+
+model SavedTicket {
+  id            String   @id @default(uuid())
+  lotterySlug   String
+  contestNumber Int?     // Concurso vinculado a aposta, se souber
+  numbers       Int[]    // Vetor de dezenas escolhidas
+  cost          Float    @default(0.0)
+  
+  // Bolão Data
+  isSyndicate   Boolean  @default(false)
+  archived      Boolean  @default(false)   // true = aposta arquivada (já jogada)
+  
+  participants  Participant[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Participant {
+  id            String      @id @default(uuid())
+  name          String
+  quota         Float
+  savedTicketId String
+  savedTicket   SavedTicket @relation(fields: [savedTicketId], references: [id], onDelete: Cascade)
 }

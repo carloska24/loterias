@@ -9,11 +9,13 @@ const BASE_URL = 'https://loteriascaixa-api.herokuapp.com/api';
 const prisma = new PrismaClient();
 
 interface ApiResult {
-  nome: string;
-  numero_concurso: number;
-  data_concurso: string;
+  loteria: string;
+  concurso: number;
+  data: string;
   dezenas: string[];
-  // add other fields as needed
+  valorEstimadoProximoConcurso?: number;
+  dataProximoConcurso?: string;
+  acumulou?: boolean;
 }
 
 export const fetchLatestResult = async (loteriaSlug: string) => {
@@ -59,6 +61,29 @@ export const importHistoricalData = async (
     });
   }
 
+  // Sempre tentar resgatar o sorteio mais recente de vez para atualizar O Prêmio e Data no header da Loteria
+  try {
+    const latestForMeta = await fetchLatestResult(loteriaSlug);
+    if (latestForMeta) {
+      let proximaData: Date | null = null;
+      if (latestForMeta.dataProximoConcurso) {
+        const [d, m, y] = latestForMeta.dataProximoConcurso.split('/');
+        proximaData = new Date(Number(y), Number(m) - 1, Number(d));
+      }
+
+      await prisma.lottery.update({
+        where: { id: lottery.id },
+        data: {
+          nextPrize: latestForMeta.valorEstimadoProximoConcurso ?? null,
+          nextDate: proximaData,
+          accumulated: latestForMeta.acumulou ?? false,
+        },
+      });
+    }
+  } catch (err) {
+    console.error('Falha não fatal ao atualizar meta-dados da loteria:', err);
+  }
+
   // 2. Get latest imported contest to resume from
   const lastResult = await prisma.result.findFirst({
     where: { lotteryId: lottery.id },
@@ -77,8 +102,8 @@ export const importHistoricalData = async (
     if (!data) {
       // Try to fetch latest to see if we reached the end or just a gap/error
       const latest = await fetchLatestResult(loteriaSlug);
-      if (latest && latest.numero_concurso < nextConcurso) {
-        console.log(`Chegamos ao fim dos resultados disponíveis (${latest.numero_concurso}).`);
+      if (latest && latest.concurso < nextConcurso) {
+        console.log(`Chegamos ao fim dos resultados disponíveis (${latest.concurso}).`);
         break;
       }
 
@@ -90,9 +115,8 @@ export const importHistoricalData = async (
 
     errorCount = 0; // Reset error count on success
 
-    // Save result
     // Date format from API: "10/04/2007" (DD/MM/YYYY)
-    const dateParts = data.data_concurso.split('/').map(Number);
+    const dateParts = data.data ? data.data.split('/').map(Number) : [];
     if (dateParts.length < 3) continue;
 
     const [day, month, year] = dateParts;
@@ -103,13 +127,13 @@ export const importHistoricalData = async (
     await prisma.result.create({
       data: {
         lotteryId: lottery.id,
-        contestNumber: data.numero_concurso,
+        contestNumber: data.concurso,
         date: dateObj,
         numbers: data.dezenas.map(Number),
       },
     });
 
-    console.log(`Importado: Concurso ${data.numero_concurso} - ${data.data_concurso}`);
+    console.log(`Importado: Concurso ${data.concurso} - ${data.data}`);
     nextConcurso++;
 
     // Rate limiting friendly

@@ -1,13 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ──────────────────────────────────────────────────────────────────
+   CUSTOM SCROLLBAR
+────────────────────────────────────────────────────────────────── */
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
+    width: 5px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: #f1f5f9;
     border-radius: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
@@ -19,6 +24,187 @@
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────
+   NEUMORPHISM — Toggle Bolão
+   Usa uma paleta neutra levemente acinzentada compatível com o fundo
+────────────────────────────────────────────────────────────────── */
+@layer components {
+  /* Superfície neumórfica: parece "embutida" no fundo */
+  .neumorphic-base {
+    background: #eef1f5;
+    border-radius: 9999px;
+    box-shadow:
+      6px 6px 12px #c8ccd3,
+      -6px -6px 12px #ffffff;
+    transition:
+      box-shadow 0.25s ease,
+      background 0.25s ease;
+  }
+
+  /* Estado ATIVO (checked) — pressed inward */
+  .neumorphic-active {
+    background: #e4e9f0;
+    box-shadow:
+      inset 4px 4px 8px #c0c5cc,
+      inset -4px -4px 8px #ffffff;
+  }
+
+  /* Thumb do toggle neumórfico */
+  .neumorphic-thumb {
+    background: #ffffff;
+    border-radius: 9999px;
+    box-shadow:
+      3px 3px 6px #c8ccd3,
+      -2px -2px 5px #ffffff;
+    transition:
+      transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+      background 0.25s ease;
+  }
+  .neumorphic-thumb-active {
+    box-shadow:
+      3px 3px 6px #8a8fa0,
+      -1px -1px 3px rgba(255, 255, 255, 0.6);
+  }
+
+  /* Badge de métrica nos bilhetes */
+  .metric-badge {
+    @apply text-[10px] font-bold px-2 py-0.5 rounded-full border;
+  }
+  .metric-ok {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+  }
+  .metric-warn {
+    @apply bg-amber-50   text-amber-700   border-amber-200;
+  }
+
+  /* Barra de progresso de acertos */
+  .hit-bar {
+    @apply h-2 rounded-full overflow-hidden bg-gray-100;
+  }
+  .hit-bar-fill {
+    @apply h-full rounded-full transition-all duration-700 ease-out;
+  }
+
+  /* Card de loteria premium */
+  .lottery-card {
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm
+           hover:shadow-md hover:-translate-y-0.5 transition-all duration-200;
+  }
+
+  /* Número sorteado — bolinha base */
+  .draw-ball {
+    @apply w-10 h-10 flex items-center justify-center rounded-full
+           text-sm font-black shadow-sm border transition-all duration-200;
+  }
+  .draw-ball-hit {
+    @apply scale-110 ring-2 ring-emerald-400/60 shadow-md;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   ANIMAÇÕES GLOBAIS
+────────────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease both;
+}
+.animate-slideUp {
+  animation: slideUp 0.4s ease both;
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% auto;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   BASE GLOBAL
+────────────────────────────────────────────────────────────────── */
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, Arial, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   IMPRESSÃO — Layout Impecável
+────────────────────────────────────────────────────────────────── */
+@media print {
+  @page {
+    margin: 1.5cm 1.2cm;
+    size: A4 portrait;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Evitar quebra de página dentro de elementos críticos */
+  .break-inside-avoid {
+    break-inside: avoid;
+  }
+
+  /* Garantir que fundos coloridos sejam impressos */
+  .print-bg-black {
+    background: #000 !important;
+    color: #fff !important;
+  }
+  .print-border {
+    border: 2px solid #000 !important;
+  }
+
+  /* Ocultar elementos não necessários na impressão */
+  nav,
+  aside,
+  header,
+  button:not(.print-show),
+  .print\\:hidden {
+    display: none !important;
+  }
 }

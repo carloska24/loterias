@@ -1,10 +1,19 @@
-import { LayoutDashboard, TrendingUp, History, Settings, LogOut, Ticket } from 'lucide-react';
+import {
+  LayoutDashboard,
+  TrendingUp,
+  History,
+  Settings,
+  LogOut,
+  Ticket,
+  Database,
+} from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const MENU_ITEMS = [
   { icon: LayoutDashboard, label: 'Painel', path: '/' },
   { icon: Ticket, label: 'Gerador de Jogos', path: '/generator' },
-  { icon: History, label: 'Meus Jogos', path: '/history' },
+  { icon: History, label: 'Conferidor Inteligente', path: '/history' },
+  { icon: Database, label: 'Resultados Oficiais', path: '/results' },
   { icon: TrendingUp, label: 'Estatísticas', path: '/stats' },
   { icon: Settings, label: 'Configurações', path: '/settings' },
 ];

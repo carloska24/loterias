@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entenda a Inteligência Artificial - Loterias AI</title>
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --accent-hot: #ef4444;
+            --accent-cold: #3b82f6;
+            --accent-balance: #10b981;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 1rem;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 600px; /* Otimizado para leitura fofa no mobile */
+            margin: 0 auto;
+            background-color: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            background-color: var(--primary);
+            color: white;
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .content {
+            padding: 1.5rem;
+        }
+
+        .intro {
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .step {
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .step::after {
+            content: '';
+            position: absolute;
+            left: 24px;
+            bottom: -24px;
+            height: 24px;
+            width: 2px;
+            background-color: var(--border);
+            z-index: 0;
+        }
+
+        .step:last-child::after {
+            display: none;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background-color: var(--primary-light);
+            color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            border: 4px solid var(--bg-card);
+        }
+
+        .step-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .step-body {
+            padding-left: 4rem; /* Alinha com o texto, respeitando o ícone */
+        }
+
+        .step-body p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .strategy-box {
+            background-color: var(--bg-body);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .strategy-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .strategy-content h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .strategy-content p {
+            font-size: 0.85rem !important;
+            margin-bottom: 0 !important;
+            color: var(--text-muted);
+        }
+
+        .hot h4 { color: var(--accent-hot); }
+        .cold h4 { color: var(--accent-cold); }
+        .balance h4 { color: var(--accent-balance); }
+
+        .filter-list {
+            list-style: none;
+        }
+
+        .filter-list li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .filter-list li::before {
+            content: '🛡️';
+            position: absolute;
+            left: 0;
+            top: 2px;
+            font-size: 1rem;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            background-color: var(--bg-body);
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Animação suave de entrada */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container {
+            animation: fadeIn 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Loterias AI</h1>
+        <p>A Matemática por Trás dos Seus Palpites</p>
+    </div>
+
+    <div class="content">
+        <p class="intro">
+            Criamos um material rápido para você entender como nosso Algoritmo de Inteligência seleciona as dezenas e foge de armadilhas como um apostador profissional.
+        </p>
+
+        <!-- Etapa 1 -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <h3 class="step-title">Varredura de Histórico</h2>
+            </div>
+            <div class="step-body">
+                <p>Antes de sortear qualquer bola, o sistema baixa na memória celular até <strong>5.000 concursos oficiais</strong> do passado e traça dois perfis exatos para cada número (ex: 1 a 60):</p>
+                <div class="strategy-box">
+                    <span class="strategy-icon">📊</span>
+                    <div class="strategy-content">
+                        <h4 style="color:#1e293b">Frequência e Atraso</h4>
+                        <p>O sistema descobre quantas vezes um número saiu na vida toda, e também mapeia há quantos sorteios ele "sumiu" e não dá as caras.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Etapa 2 -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <h3 class="step-title">Distribuição de "Pontos"</h2>
+            </div>
+            <div class="step-body">
+                <p>Agora cada número ganha uma Nota de "Apetite Matemático". Essa nota obedece a estratégia que você escolheu no aplicativo:</p>
+                
+                <div class="strategy-box hot">
+                    <span class="strategy-icon">🔥</span>
+                    <div class="strategy-content">
+                        <h4>Números Quentes</h4>
+                        <p>Dá nota mais alta (peso 1.5x) para os números que mais saem na história, apostando que a "tendência de fogo" vai se manter.</p>
+                    </div>
+                </div>
+
+                <div class="strategy-box cold">
+                    <span class="strategy-icon">❄️</span>
+                    <div class="strategy-content">
+                        <h4>Números Atrasados</h4>
+                        <p>Inverte o jogo! Dá peso pesado (2.0x) para bolinhas "frias" que estão sumidas há semanas, apostando que elas não aguentam mais se esconder.</p>
+                    </div>
+                </div>
+
+                <div class="strategy-box balance">
+                    <span class="strategy-icon">⚖️</span>
+                    <div class="strategy-content">
+                        <h4>Equilíbrio Estatístico</h4>
+                        <p>É o padrão ouro. Mistura números que saem muito com números que estão atrasados de forma perfeitamente matemática.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Etapa 3 -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <h3 class="step-title">Randomização "Elite"</h2>
+            </div>
+            <div class="step-body">
+                <p>Se a IA apenas pegasse as dezenas com notas mais altas sempre geraria o <em>exato mesmo volante</em> todo dia. Para adicionar "Sorte", ela recorta apenas a bolha de Elite (melhores números) e faz uma Seleção Aleatória Ponderada restrita à eles.</p>
+            </div>
+        </div>
+
+        <!-- Etapa 4 -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">4</div>
+                <h3 class="step-title">Corta-Fogo Anti-Amador</h2>
+            </div>
+            <div class="step-body">
+                <p>Antes de salvar o palpite para você, a IA testa seu volante contra as maiores "burrices probabilísticas". Se falhar, ela joga no lixo e refaz do zero:</p>
+                <ul class="filter-list">
+                    <li><strong>Ímpar/Par Exclusivo:</strong> Destrói na hora volantes que nascem 100% pares ou 100% ímpares. Probabilidade quase impossível da Caixa sortear.</li>
+                    <li><strong>A Grande Escadinha:</strong> Impede grupos burros com mais de "3 números grudados". (Você nunca vai ver um Loterias AI te mandar apostar 10-11-12-13 num mesmo jogo).</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        Desenvolvido com 🧮 por Loterias AI (2026)
+    </div>
+</div>
+
+</body>
+</html>
